@@ -1,0 +1,174 @@
+<link rel="stylesheet" href="/stylesheets/style.css">
+<%- include('partials/navbar') %>
+<div class="content-wrapper">
+
+<h1 class="welcome-text">Welcome, <%= username %>!</h1> <!-- Apply the new class -->
+
+
+
+<h1>Your Water Intake</h1>
+<!-- Display error message if it exists -->
+<% if (typeof errorMessage !== 'undefined') { %>
+  <div class="error-message"><%= errorMessage %></div>
+<% } %>
+
+<form action="/water-intake/add" method="POST">
+  <label for="amount">Amount of Water (ml):</label>
+  <input type="number" id="amount" name="amount" required>
+  <button type="submit">Add Intake</button>
+</form>
+
+<h2>Water Intake Entries</h2>
+<ul id="waterIntakeList">
+  <% waterIntakes.forEach(intake => { %>
+    <li id="entry-<%= intake._id %>">
+      <%= intake.amount %> ml on 
+      <%= new Date(intake.date).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) %> 
+      at <%= new Date(intake.date).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) %>
+      <button class="edit-btn" data-id="<%= intake._id %>" data-amount="<%= intake.amount %>">Edit</button>
+      <button class="delete-btn" data-id="<%= intake._id %>">Delete</button>
+    </li>
+  <% }) %>
+</ul>
+
+<!-- Pagination -->
+<% if (totalPages > 1) { %>
+  <div class="pagination">
+    <% if (currentPage > 1) { %>
+      <a href="/water-intake?page=<%= currentPage - 1 %>">Previous</a>
+    <% } %>
+  
+    <span>Page <%= currentPage %> of <%= totalPages %></span>
+  
+    <% if (currentPage < totalPages) { %>
+      <a href="/water-intake?page=<%= currentPage + 1 %>">Next</a>
+    <% } %>
+  </div>
+<% } %>
+
+<!-- Edit Intake Modal -->
+<div id="editModal" style="display:none;">
+  <h3>Edit Water Intake</h3>
+  <form id="editForm">
+    <input type="number" id="editAmount" name="amount" required>
+    <button type="submit">Save</button>
+    <button type="button" id="closeModal">Cancel</button>
+  </form>
+</div>
+
+<div class="difference-container">
+  <h3>Water Intake Difference</h3>
+  <form id="difference-form">
+    <label for="startDate">Start Date</label>
+    <input type="date" id="startDate" required>
+
+    <label for="endDate">End Date</label>
+    <input type="date" id="endDate" required>
+
+    <button type="submit">Get Difference</button>
+  </form>
+
+  <p id="difference-result"></p>
+</div>
+</div>
+
+<!-- Include jQuery for AJAX -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  // Event listener for Delete buttons
+  $(document).on('click', '.delete-btn', function() {
+    var entryId = $(this).data('id');  // Get the ID of the water intake entry
+
+    // AJAX DELETE request to the server
+    $.ajax({
+      url: '/water-intake/delete/' + entryId,  // URL to call the delete route
+      type: 'DELETE',  // Method is DELETE
+      success: function(response) {
+        // On success, remove the entry from the DOM
+        $('#entry-' + entryId).remove();
+      },
+      error: function(err) {
+        // Handle error (could show an alert or message)
+        alert('Error deleting water intake entry');
+      }
+    });
+  });
+
+  // Event listener for Edit buttons
+  $(document).on('click', '.edit-btn', function() {
+    var entryId = $(this).data('id');  // Get the ID of the water intake entry
+    var currentAmount = $(this).data('amount');  // Get the current amount
+
+    // Show the edit modal and prefill the amount input field
+    $('#editModal').show();
+    $('#editAmount').val(currentAmount);
+
+    // Handle the form submission for editing the entry
+    $('#editForm').on('submit', function(e) {
+      e.preventDefault();
+
+      var newAmount = $('#editAmount').val();  // Get the new amount
+
+      // AJAX PUT request to update the entry
+      $.ajax({
+        url: '/water-intake/update/' + entryId,  // URL to call the update route
+        type: 'PUT',  // Method is PUT for update
+        data: { amount: newAmount },  // Send the new amount in the request
+        success: function(response) {
+          // On success, update the DOM with the new amount
+          $('#entry-' + entryId).html(newAmount + ' ml on ' + new Date().toISOString().split('T')[0] + 
+                                      ' <button class="edit-btn" data-id="' + entryId + '" data-amount="' + newAmount + '">Edit</button>' + 
+                                      ' <button class="delete-btn" data-id="' + entryId + '">Delete</button>');
+          $('#editModal').hide();  // Hide the modal after saving
+          location.reload();
+        },
+        error: function(err) {
+          // Handle error
+          alert('Error updating water intake entry');
+        }
+      });
+    });
+  });
+
+  // Close the modal if the user clicks cancel
+  $('#closeModal').on('click', function() {
+    $('#editModal').hide();
+  });
+</script>
+
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+  $('#difference-form').submit(function (event) {
+    event.preventDefault();
+
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+
+    console.log('Submitting date range:', startDate, endDate);
+
+    // Validate input
+    if (!startDate || !endDate) {
+      $('#difference-result').text('Both start and end dates are required.');
+      return;
+    }
+
+    if (startDate > endDate) {
+      $('#difference-result').text('Start date cannot be later than end date.');
+      return;
+    }
+
+    // Send AJAX request to fetch the water intake difference
+    $.get('/water-intake/difference', { startDate, endDate })
+      .then(function (data) {
+        $('#difference-result').text('Difference in intake: ' + data.difference + ' ml');
+      })
+      .catch(function (err) {
+        console.error('Error:', err);
+        $('#difference-result').text(
+          'Error calculating difference: ' + (err.responseText || 'Unknown error.')
+        );
+      });
+  });
+</script>

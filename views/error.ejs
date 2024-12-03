@@ -1,0 +1,15 @@
+<h1><%= message %></h1>
+
+<% if (typeof errors !== 'undefined' && errors.length > 0) { %>
+  <h2>Errors:</h2>
+  <ul>
+    <% errors.forEach(function(error) { %>
+      <li><%= error.msg %></li>
+    <% }); %>
+  </ul>
+<% } %>
+
+<% if (error && error.stack) { %>
+  <h2><%= error.status %></h2>
+  <pre><%= error.stack %></pre>
+<% } %>

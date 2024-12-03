@@ -1,0 +1,11 @@
+<link rel="stylesheet" href="/stylesheets/style.css">
+<ul class="navbar">
+  <li><a href="/">Home</a></li>
+  <% if (user) { %>
+    <li><a href="/water-intake">Water Intake</a></li>
+    <li><a href="/logout">Logout</a></li>
+  <% } else { %>
+    <li><a href="/signup">Sign Up</a></li>
+    <li><a href="/login">Login</a></li>
+  <% } %>
+</ul>
